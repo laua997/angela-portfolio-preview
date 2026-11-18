@@ -8,7 +8,7 @@ on:
   repository_dispatch:
     types: [preview]
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: write

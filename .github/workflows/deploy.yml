@@ -1,0 +1,51 @@
+name: Deploy preview
+
+# Rebuilds laua997/angela-portfolio@cursor/home-opener-revamp-f9e9 and publishes
+# the static files on this repo's gh-pages branch. It does not touch
+# laua997/angela-portfolio or its live GitHub Pages site.
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [preview]
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout portfolio branch
+        uses: actions/checkout@v4
+        with:
+          repository: laua997/angela-portfolio
+          ref: cursor/home-opener-revamp-f9e9
+          path: site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install and build
+        working-directory: site
+        env:
+          ASTRO_SITE: https://laua997.github.io
+          ASTRO_BASE: /angela-portfolio-preview/
+        run: |
+          npm ci
+          npm run build
+      - name: Publish gh-pages
+        working-directory: site
+        run: |
+          cd dist
+          touch .nojekyll
+          git init -b gh-pages
+          git add -A
+          git -c user.email="github-actions[bot]@users.noreply.github.com" -c user.name="github-actions[bot]" commit -m "Preview build"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
